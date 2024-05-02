@@ -62,7 +62,42 @@ LRESULT CALLBACK WindowProcW(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             if (wParam == CM_SAVE)
             {
-                MessageBoxW(hwnd, L"Save", L"Save", MB_OK);
+                if (MessageBoxW(hwnd, L"Save", L"Save", MB_OKCANCEL) == IDOK)
+                {
+                    //save file
+                    OPENFILENAMEW ofn = { 0 };
+                    WCHAR szFile[MAX_PATH] = L"";
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = hwnd;
+                    ofn.lpstrFile = szFile;
+                    ofn.lpstrFile[0] = L'\0';
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = L"All\0*.*\0Text\0*.TXT\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.lpstrFileTitle = NULL;
+                    ofn.nMaxFileTitle = 0;
+                    ofn.lpstrInitialDir = NULL;
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+
+                    if (GetSaveFileNameW(&ofn))
+                    {
+                        //save file
+                        HANDLE hFile = CreateFileW(ofn.lpstrFile, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                        if (hFile == INVALID_HANDLE_VALUE)
+                        {
+                            MessageBoxW(hwnd, L"Error saving file", L"Error", MB_OK);
+                        }
+                        else
+                        {
+                            DWORD dwBytesWritten = 0;
+                            WCHAR szText[1024] = L"";
+                            GetWindowTextW(hEdit, szText, 1024);
+                            WriteFile(hFile, szText, wcslen(szText) * sizeof(WCHAR), &dwBytesWritten, NULL);
+                            CloseHandle(hFile);
+                        }
+                    }
+                }
             }
 
             return 0;
