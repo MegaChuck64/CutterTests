@@ -77,10 +77,10 @@ int TryQuit(HWND hwnd)
     if (MessageBoxW(hwnd, L"Really quit?", L"My application", MB_OKCANCEL) == IDOK)
     {
         DestroyWindow(hwnd);
-        return 0;
+        return 1;
     }
 
-    return 1;
+    return 0;
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -129,7 +129,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE)
         {
-            if (TryQuit(hwnd) == 0)
+            if (TryQuit(hwnd))
             {
                 break;
             }
