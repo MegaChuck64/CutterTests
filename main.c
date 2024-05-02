@@ -1,6 +1,7 @@
 #include <windows.h>
 
-#define CM_SAVE 1
+#define CMD_SAVE 1
+#define CMD_OPEN 2
 
 LRESULT CALLBACK WindowProcW(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -12,7 +13,8 @@ LRESULT CALLBACK WindowProcW(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             //add menu
             HMENU hMenu = CreateMenu();
             HMENU hSubMenu = CreatePopupMenu();
-            AppendMenuW(hSubMenu, MF_STRING, CM_SAVE, L"&Save (ctr+s)");
+            AppendMenuW(hSubMenu, MF_STRING, CMD_SAVE, L"&Save (ctr+s)");
+            AppendMenuW(hSubMenu, MF_STRING, CMD_OPEN, L"&Open (ctr+o)");
             AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hSubMenu, L"&File");
 
             SetMenu(hwnd, hMenu);
@@ -60,7 +62,7 @@ LRESULT CALLBACK WindowProcW(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         case WM_COMMAND:
         {
-            if (wParam == CM_SAVE)
+            if (wParam == CMD_SAVE)
             {
                 if (MessageBoxW(hwnd, L"Save", L"Save", MB_OKCANCEL) == IDOK)
                 {
@@ -96,6 +98,41 @@ LRESULT CALLBACK WindowProcW(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                             WriteFile(hFile, szText, wcslen(szText) * sizeof(WCHAR), &dwBytesWritten, NULL);
                             CloseHandle(hFile);
                         }
+                    }
+                }
+            }
+            else if (wParam == CMD_OPEN)
+            {
+                //open file
+                OPENFILENAMEW ofn = { 0 };
+                WCHAR szFile[MAX_PATH] = L"";
+                ofn.lStructSize = sizeof(ofn);
+                ofn.hwndOwner = hwnd;
+                ofn.lpstrFile = szFile;
+                ofn.lpstrFile[0] = L'\0';
+                ofn.nMaxFile = sizeof(szFile);
+                ofn.lpstrFilter = L"All\0*.*\0Text\0*.TXT\0";
+                ofn.nFilterIndex = 1;
+                ofn.lpstrFileTitle = NULL;
+                ofn.nMaxFileTitle = 0;
+                ofn.lpstrInitialDir = NULL;
+                ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_OVERWRITEPROMPT;
+
+                if (GetOpenFileNameW(&ofn))
+                {
+                    //open file
+                    HANDLE hFile = CreateFileW(ofn.lpstrFile, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+                    if (hFile == INVALID_HANDLE_VALUE)
+                    {
+                        MessageBoxW(hwnd, L"Error opening file", L"Error", MB_OK);
+                    }
+                    else
+                    {
+                        DWORD dwBytesRead = 0;
+                        WCHAR szText[1024] = L"";
+                        ReadFile(hFile, szText, 1024, &dwBytesRead, NULL);
+                        SetWindowTextW(hEdit, szText);
+                        CloseHandle(hFile);
                     }
                 }
             }
@@ -159,9 +196,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         if (GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState('S') & 0x8000)
         {
-            SendMessage(hwnd, WM_COMMAND, CM_SAVE, 0);
+            SendMessage(hwnd, WM_COMMAND, CMD_SAVE, 0);
         }
-
+        else if (GetAsyncKeyState(VK_CONTROL) & 0x8000 && GetAsyncKeyState('O') & 0x8000)
+        {
+            SendMessage(hwnd, WM_COMMAND, CMD_OPEN, 0);
+        }
+        
         if (msg.message == WM_KEYDOWN && msg.wParam == VK_ESCAPE)
         {
             if (TryQuit(hwnd))
